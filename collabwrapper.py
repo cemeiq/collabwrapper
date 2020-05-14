@@ -626,6 +626,10 @@ class IncomingFileTransfer(_BaseFileTransfer):
     def output(self):
         return self._destination_path or self._output_stream
 
+    @GObject.Property
+    def socket_address(self):
+        return self._socket_address
+
 
 class _BaseOutgoingTransfer(_BaseFileTransfer):
     '''
