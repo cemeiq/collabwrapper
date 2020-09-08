@@ -278,43 +278,31 @@ class CollabWrapper(GObject.GObject):
     def _handle_ft_channel(self, conn, path, props):
         _logger.debug('_handle_ft_channel')
         ft = IncomingFileTransfer(conn, path, props)
-        if ft.description == ACTION_INIT_RESPONSE:
-            ft.connect('ready', self.__ready_cb)
-            ft.accept_to_memory()
-        else:
-            desc = json.loads(ft.description)
-            self.incoming_file.emit(ft, desc)
-
-    def __ready_cb(self, ft, stream):
-        _logger.debug('__ready_cb')
-        if self._init_waiting:
-            stream.close(None)
-            # FIXME:  The data prop seems to just be the raw pointer
-            gbytes = stream.steal_as_bytes()
-            data = gbytes.get_data()
-            _logger.debug('Got init data from buddy: %r', data)
-            data = json.loads(data)
-            self.activity.set_data(data)
-            self._init_waiting = False
+        desc = json.loads(ft.description)
+        self.incoming_file.emit(ft, desc)
 
     def __received_cb(self, buddy, msg):
         '''Process a message when it is received.'''
-        _logger.debug('__received_cb')
         action = msg.get('action')
         if action == ACTION_INIT_REQUEST:
             if self._leader:
                 data = self.activity.get_data()
                 if data is not None:
                     data = json.dumps(data)
-                    OutgoingBlobTransfer(
-                        buddy,
-                        self.shared_activity.telepathy_conn,
-                        data,
-                        self.get_client_name(),
-                        ACTION_INIT_RESPONSE,
-                        ACTIVITY_FT_MIME)
+                    self.post({'action': ACTION_INIT_RESPONSE, 'data': data})
+                    _logger.debug('__received_cb init-request')
+            return
+        elif action == ACTION_INIT_RESPONSE:
+            if self._init_waiting:
+                self._init_waiting = False
+                data = msg.get('data')
+                if data is not None:
+                    data = json.loads(data)
+                    self.activity.set_data(data)
+                    _logger.debug('__received_cb init-response')
             return
 
+        _logger.debug('__received_cb')
         if buddy:
             nick = buddy.props.nick
         else:
