@@ -68,7 +68,7 @@ class CollabWrapperTestActivity(activity.Activity):
         self._make_automatic_restart()
 
     def set_data(self, data):
-        if data is not 'no specific data':
+        if data != 'no specific data':
             logging.error('get_data, set_data: unexpected data %r' % data)
 
     def get_data(self):
